@@ -1,7 +1,16 @@
 import torch
+import torch.nn.functional as F
 import numpy as np
 
-def mse2D(y_true, y_pred):
+def accuracy(y_pred, label):
+    max_index = y_pred.max(dim = 1)[1]
+    acc = (max_index==label).sum()
+    return acc
+
+def cross_entropy(y_pred, label):
+    return F.cross_entropy(y_pred, label)
+
+def mse2D(y_pred, y_true):
     # y_pred:(batch, 13, 260, 346)
     diff = y_pred - y_true
     mean_over_ch = torch.mean(diff**2, dim = 1)
@@ -15,7 +24,7 @@ def get_indices(y):
     indices = torch.stack([(m // width), (m % width)], dim = 2)
     return indices
 
-def mpjpe(y_true, y_pred):
+def mpjpe(y_pred, y_true):
     # y_pred:(batch, 13, 260, 346)
     m_pred = get_indices(y_pred)
     m_true = get_indices(y_true)
@@ -35,7 +44,7 @@ def gen_2dpose_from_heatmap(heatmap):
     indices= np.stack([m // h, m % h]) #(2, 13)
     return indices
 
-def mse2D_numpy(y_true, y_pred):
+def mse2D_numpy(y_pred, y_true):
     #(batch, 13, 260, 344)
     diff = y_true - y_pred
     mean_over_ch = np.mean(diff ** 2, axis = 1)
@@ -47,7 +56,7 @@ def get_indices_numpy(y):
     m = np.argmax(y.reshape((batch, num_joints, -1)), axis = -1) #(batch, 13)
     indices = np.stack([m // width, m % width], axis = 2) 
     return indices
-def mpjpe_numpy(y_true, y_pred):
+def mpjpe_numpy(y_pred, y_true):
     # (batch, 13, 260, 344)
     b, j, h, w = y_true.shape
     m_pred = get_indices_numpy(y_pred)

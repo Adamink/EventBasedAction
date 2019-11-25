@@ -150,27 +150,9 @@ class Pose7500(data.Dataset):
     def __getitem__(self, index):
         if self.experiment=='dhpcnn':
             return self.dhpcnn_getitem(index)
-        elif self.experiment=='simple_baseline':
-            return self.simple_baseline_getitem(index)
-        elif self.experiment=='triangulation':
-            return self.triangulation_getitem(index)
+        elif self.experiment=='mm_cnn':
+            return self.mm_cnn_getitem(index)
 
-    def simple_baseline_getitem(self, index):
-        event, heatmap, skeleton, pose, pose_weight, label, meta = self.get_raw_item(index)
-
-        event = np.repeat(event[np.newaxis, :, :], 3, axis = 0) #(3, 260, 346)， uint8
-        event = event.astype('float32')
-        if np.max(event) > 0.:
-            event = (255 * event / np.max(event)).astype('uint8') # normalize to [0,255]
-        event = Image.fromarray(event, mode = 'RGB')
-        event = self.transform(event) #(3, 192, 256)
-        
-        heatmap = cv2.resize(heatmap, dsize = (48, 64)) #(48, 64, 13)
-        heatmap = np.transpose(heatmap, [2,0,1]) #(13, 48, 64)
-        heatmap = torch.from_numpy(heatmap).type(torch.FloatTensor)
-        pose_weight = torch.from_numpy(pose_weight).type(torch.FloatTensor)
-
-        return event, heatmap, pose_weight, meta
     def dhpcnn_getitem(self, index):
         event, heatmap, skeleton, pose, pose_weight, label, meta = self.get_raw_item(index)
         event = event.astype('float32')
@@ -181,31 +163,28 @@ class Pose7500(data.Dataset):
         heatmap = np.transpose(heatmap, [2,0,1]) #(13, 260, 346)
         heatmap = torch.from_numpy(heatmap).type(torch.FloatTensor)
         return event, heatmap
-
+    
+    def mm_cnn_getitem(self, index):
+        event, heatmap, skeleton, pose, pose_weight, label, meta = self.get_raw_item(index)
+        event = event.astype('float32')
+        if np.max(event) > 0.:
+            event = (255 * event / np.max(event)) # normalize to [0,255]
+        event = event.reshape((1,) + event.shape) # (1, 260, 344)
+        event = torch.from_numpy(event).type(torch.FloatTensor)
+        label = torch.tensor(label).type(torch.LongTensor)
+        return event, label
     def __len__(self):
         return self.len
 
-    def _get_db(self):
-        pass
-    
-    def evaluate(self, cfg, preds, output_dir, *args, **kwargs):
-        return {'Null': 0.0}, 0.0
-
-
-def visualize_event_heatmap(event, heatmap, save_pth):
-    # event: (260, 346)
-    # heatmap: (260, 346, 13)
-    import matplotlib.pyplot as plt
-    plt.figure()
-    plt.imshow(event, cmap = 'gray')
-    plt.imshow(np.sum(heatmap, axis =-1), alpha = .5)
-    plt.savefig(save_pth)
 
 
 if __name__=='__main__':
     np.set_printoptions(suppress=True)
     definitions = import_def()
-    d = Pose7500(definitions.pose_7500_dir, definitions.p_mat_dir, experiment = 'dhpcnn')
-    event, heatmap, meta = d[1000]
-    event = event.numpy().squeeze()
-    heatmap = np.transpose(heatmap.numpy(), [1,2,0])
+    d = Pose7500(definitions.pose_7500_dir, definitions.p_mat_dir, experiment = 'mm_cnn')
+    event, label = d[0]
+    test_dataloader = torch.utils.data.DataLoader(
+        d,
+        batch_size=32,
+        shuffle=True,
+        num_workers=4)

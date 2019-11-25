@@ -8,3 +8,5 @@ from .timer import get_time
 from .timer import fmt_elapsed_time
 from .timer import get_fmt_time
 from .importer import import_class  
+import utils.losses
+import utils.trainer

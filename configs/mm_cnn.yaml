@@ -1,35 +1,39 @@
 lr: 0.001
-epochs: 20
+epochs: 150
 batch_size: 32
 
-experiment: pose7500
+experiment: mm_cnn
 dataset: dataset.pose7500.Pose7500
 
 train_dataset_args:
   data_dir: /mnt/hdd/wuxiao/DHP19/matlab_output/h5_dataset_7500_events/344x260/
   p_mat_dir: /mnt/hdd/wuxiao/DHP19/P_matrices/
   mode: train
-  experiment: dhpcnn
+  experiment: mm_cnn
 
 test_dataset_args:
   data_dir: /mnt/hdd/wuxiao/DHP19/matlab_output/h5_dataset_7500_events/344x260/
   p_mat_dir: /mnt/hdd/wuxiao/DHP19/P_matrices/
   mode: test
-  experiment: dhpcnn
+  experiment: mm_cnn
 
-model: model.pose7500.DHP_CNN
+model: model.pose7500.MM_CNN
 model_args:
-  input_size:
-    - 1
-    - 260
-    - 344
-optimizer: torch.optim.RMSprop
-scheduler: torch.optim.lr_scheduler.MultiStepLR
-scheduler_args:
-  milestones: 
-    - 10
-    - 15
+  fc_size:
+    - 1024
+    - 1024
+    - 26
+  num_classes: 33
 
-criterion: utils.losses.mse2D
-metric: utils.losses.mpjpe
-max_metric: False
+optimizer: torch.optim.Adam
+scheduler: torch.optim.lr_scheduler.ReduceLROnPlateau
+scheduler_args:
+  mode: min
+  factor: 0.1
+  patience: 5
+  verbose: True
+
+criterion: torch.nn.functional.cross_entropy
+metric: utils.losses.accuracy
+max_metric: True
+

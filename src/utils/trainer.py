@@ -5,41 +5,38 @@ from .timer import get_fmt_time
 def train_one_epoch(classifier, dataloader, optimizer, criterion, metric_func):
     train_all, train_loss, train_metric = (0,)* 3
     classifier.train()
-    # length = len(dataloader)
-    # for i in tqdm(range(length)):
-    #     data = dataloader[i]
-    for i, data in tqdm(enumerate(dataloader)):
-        source, target = data
-        source, target = source.float().cuda(), target.float().cuda()
-        pred = classifier(source)
+    with tqdm(total = len(dataloader)) as pbar:
+        for i, data in enumerate(dataloader):
+            pbar.update(1)
+            source, target = data
+            source, target = source.cuda(), target.cuda()
+            pred = classifier(source)
 
-        loss = criterion(target, pred)
-        metric = metric_func(target, pred)
+            loss = criterion(pred, target)
+            metric = metric_func(pred, target)
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-        train_all += source.size()[0]
-        train_loss += loss.item()
-        train_metric += metric.item()
+            train_all += source.size()[0]
+            train_loss += loss.item()
+            train_metric += metric.item()
 
     return train_loss / train_all, train_metric / train_all
 
 def test_one_epoch(classifier, dataloader, criterion, metric_func):
     test_loss, test_all, test_metric = (0,) * 3
     classifier.eval()
-    with torch.no_grad():
-        # length = len(dataloader)
-        # for i in tqdm(range(length)):
-        #     data = dataloader[i]
-        for i, data in tqdm(enumerate(dataloader)):
+    with torch.no_grad(), tqdm(total = len(dataloader)) as pbar:
+        for i, data in enumerate(dataloader):
+            pbar.update(1)
             source, target = data
-            source, target = source.float().cuda(), target.float().cuda()
+            source, target = source.cuda(), target.cuda()
             pred = classifier(source)
 
-            loss = criterion(target, pred)
-            metric = metric_func(target, pred)
+            loss = criterion(pred, target)
+            metric = metric_func(pred, target)
 
             test_all += source.size()[0]
             test_loss += loss.item()
@@ -48,7 +45,7 @@ def test_one_epoch(classifier, dataloader, criterion, metric_func):
     return test_loss / test_all, test_metric / test_all
 
 def train(args, model, train_dataloader, test_dataloader, optimizer, scheduler,
- criterion, metric, logger, board, test_interval = 1, max_metric = True):
+ criterion, metric, logger, board, test_interval = 1, max_metric = False):
 
     def better(a, b):
         if max_metric:
@@ -56,7 +53,7 @@ def train(args, model, train_dataloader, test_dataloader, optimizer, scheduler,
         else:
             return a < b
 
-    best_metric, best_epoch = (float('inf'), 0) if max_metric else (float('-inf'), 0)
+    best_metric, best_epoch = (float('-inf'), 0) if max_metric else (float('inf'), 0)
     test_loss, test_metric = test_one_epoch(model, test_dataloader, criterion, metric)
     logger("Before train, test_loss: {:.4f}, test_metric: {:.4f}".format(test_loss, test_metric))
     for epoch in range(args.epochs):
@@ -81,8 +78,9 @@ def train(args, model, train_dataloader, test_dataloader, optimizer, scheduler,
             board.add_scalars('metric', {'test_metric':test_metric}, epoch)
 
             if better(test_metric, best_metric):
+                print("Epoch: {:>3d} Saving Model".format(epoch))
                 best_metric, best_epoch = test_metric, epoch
                 torch.save(model.state_dict(), args.model_savepth)
-                torch.save(model.state_dict(), args.optim_savepth)
+                torch.save(optimizer.state_dict(), args.optim_savepth)
 
     return best_metric, best_epoch
