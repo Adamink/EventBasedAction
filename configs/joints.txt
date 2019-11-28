@@ -1,0 +1,13 @@
+0 head
+1 left-shoulder
+2 right-shoulder
+3 left-elbow
+4 right-elbow
+5 left-hand
+6 right-hand
+7 left-hip
+8 right-hip
+9 left-knees
+10 right-knees
+11 left-foot
+12 right-foot

@@ -1,0 +1,33 @@
+1 - Left arm abduction 
+2 - Right arm abduction
+3 - Left leg abduction
+4 - Right leg abduction
+5 - Left arm bicep curl
+6 - Right arm bicep curl
+7 - Left leg knee lift
+8 - Right leg knee lift
+9 - Walking 3.5 km/h
+10 - Single jump up-down
+11 - Single jump forwards
+12 - Multiple jumps up-down
+13 - Hop right foot
+14 - Hop left foot
+15 - Punch straight forward left
+16 - Punch straight forward right
+17 - Punch up forwards left
+18 - Punch up forwards right
+19 - Punch down forwards left
+20 - Punch down forwards right
+21 - Slow jogging 7 km/h
+22 - Star jumps
+23 - Kick forwards left
+24 - Kick forwards right
+25 - Side kick forwards left
+26 - Side kick forwards right
+27 - Wave hello left hand
+28 - Wave hello right hand
+29 - Circle left hand
+30 - Circle right hand
+31 - Somewhat left hand
+32 - Somewhat right hand
+33 - Clap
