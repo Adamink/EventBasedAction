@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from collections import OrderedDict
+
 class DHP_CNN(nn.Module):
     def __init__(self, input_size = (1, 260, 344)):
         # input: (batch, 1/3, 260, 344)
@@ -96,18 +98,27 @@ class Heatmap2Pose(nn.Module):
 class MergeFC(nn.Module):
     def __init__(self, input_size, output_size):
         super(MergeFC, self).__init__()
-        self.fc = nn.Linear(np.sum(input_size), output_size)
-    def forward(self, x1, x2, x3):
-        x = torch.cat((x1, x2, x3),dim = 1)
+        self.fc = nn.Linear(input_size, output_size)
+    def forward(self, *x):
+        x = torch.cat(x,dim = 1)
         x = self.fc(x)
         return x
 
 class MM_CNN(nn.Module):
-    def __init__(self, fc_size = (1024, 1024, 26), num_classes = 33):
+    def __init__(self, fc_size = (1024, 1024, 26), num_classes = 33, 
+     paths = ['feat', 'heat', 'pose'], pretrain_pth = '', output_before_fc = False):
         super().__init__()
         c = 1
         self.feat_fc_size, self.heat_fc_size, self.pose_fc_size = fc_size
-        
+        self.output_before_fc = output_before_fc
+        self.paths = paths
+        self.fc_dict = OrderedDict()
+        self.fc_dict['feat'] = self.feat_fc_size
+        self.fc_dict['heat'] = self.heat_fc_size
+        self.fc_dict['pose'] = self.pose_fc_size
+
+        self.final_fc_size = np.sum([self.fc_dict[_] for _ in self.paths])
+
         self.relu = nn.ReLU()
         self.maxpool = nn.MaxPool2d(2)
 
@@ -195,153 +206,160 @@ class MM_CNN(nn.Module):
         self.feat_conv1 = nn.Conv2d(64, 128, 3, padding = 1)
         self.feat_conv2 = nn.Conv2d(128, 256, 3, padding = 1)
         self.feat_conv3 = nn.Conv2d(256, 512, 3, padding = 1)
-        self.feat_fc = nn.Linear(512 * 8 * 10, self.feat_fc_size)
+        self.feat_fc = nn.Linear(512 * 8 * 10, self.fc_dict['feat'])
 
-        # self.feature_path = nn.Sequential(
-        #     self.feat_conv1,
-        #     nn.ReLU(),
-        #     nn.MaxPool2d(2), #(32, 44)
-        #     self.feat_conv2,
-        #     nn.ReLU(),
-        #     nn.MaxPool2d(2), #(16, 22)
-        #     self.feat_conv3,
-        #     nn.ReLU(),
-        #     nn.MaxPool2d(2), #(8, 11)
-        #     self.feat_fc
-        # )
-
+        self.feat_to_fc = nn.Sequential(
+            self.feat_conv1,
+            self.relu,
+            self.maxpool,
+            self.feat_conv2,
+            self.relu,
+            self.maxpool,
+            self.feat_conv3,
+            self.relu,
+            self.maxpool
+        )
         self.heat_conv1 = nn.Conv2d(16, 32, 3, padding = 1)
         self.heat_conv2 = nn.Conv2d(32, 64, 3, padding = 1)
         self.heat_conv3 = nn.Conv2d(64, 128, 3, padding = 1)
         self.heat_conv4 = nn.Conv2d(128, 256, 3, padding = 1)
         self.heat_conv5 = nn.Conv2d(256, 512, 3, padding = 1)
-        self.heat_fc = nn.Linear(512 * 8 * 10, self.heat_fc_size)
+        self.heat_fc = nn.Linear(512 * 8 * 10, self.fc_dict['heat'])
 
-        # self.heatmap_path = nn.Sequential(
-        #     self.heat_conv1,
-        #     nn.ReLU(),
-        #     nn.MaxPool2d(2),
-        #     self.heat_conv2,
-        #     nn.ReLU(),
-        #     nn.MaxPool2d(2),
-        #     self.heat_conv3,
-        #     nn.ReLU(),
-        #     nn.MaxPool2d(2),
-        #     self.heat_conv4,
-        #     nn.ReLU(),
-        #     nn.MaxPool2d(2),
-        #     self.heat_conv5,
-        #     nn.ReLU(),
-        #     nn.MaxPool2d(2),
-        #     self.heat_fc
-        # )
-
-        # self.pose_path = nn.Sequential(
-        #     self.pred_cube,
-        #     self.activation_17,
-        #     Heatmap2Pose(),
-        # )
+        self.heat_to_fc = nn.Sequential(
+            self.heat_conv1,
+            self.relu,
+            self.maxpool,
+            self.heat_conv2,
+            self.relu,
+            self.maxpool,
+            self.heat_conv3,
+            self.relu,
+            self.maxpool,
+            self.heat_conv4,
+            self.relu,
+            self.maxpool,
+            self.heat_conv5,
+            self.relu,
+            self.maxpool,
+        )
         self.gen_pose = Heatmap2Pose()
 
+        # self.merge_fc = MergeFC(fc_size, num_classes)
+        self.final_fc = nn.Linear(self.final_fc_size, num_classes)
 
-        self.merge_fc = MergeFC(fc_size, num_classes)
+        if pretrain_pth!='':
+            self.load_pretrain(pretrain_pth)
     def forward(self, x):
-        x = self.conv1(x)
-        x = self.activation_1(x)
-        x = self.pool1(x)
-        x = self.conv2a(x)
-        x = self.activation_2(x)
-        x = self.conv2b(x)
-        x = self.activation_3(x)
-        x = self.conv2d(x)
-        x = self.activation_4(x)
-        x = self.pool2(x)
-        x = self.conv3a(x)
-        x = self.activation_5(x)
-        x = self.conv3b(x)
-        x = self.activation_6(x)
-        x = self.conv3c(x)
-        x = self.activation_7(x)
-        x = self.conv3d(x)
-        x = self.activation_8(x)
-        
-        feat = self.feat_conv1(x)
-        feat = self.relu(feat)
-        feat = self.maxpool(feat)
-        feat = self.feat_conv2(feat)
-        feat = self.relu(feat)
-        feat = self.maxpool(feat)
-        feat = self.feat_conv3(feat)
-        feat = self.relu(feat)
-        feat = self.maxpool(feat)
-        feat = feat.view(feat.size(0), -1)
-        feat = self.feat_fc(feat)
+        x = self.forward_to_fc(x)
+        if not self.output_before_fc:
+            x = self.final_fc(x)
+        return x
 
-        x = self.conv3_up(x)
-        x = self.activation_9(x)
-        x = self.conv4a(x)
-        x = self.activation_10(x)
-        x = self.conv4b(x)
-        x = self.activation_11(x)
-        x = self.conv4c(x)
-        x = self.activation_12(x)
-        x = self.conv4d(x)
-        x = self.activation_13(x)
-        x = self.conv4_up(x)
-        x = self.activation_14(x)
-        x = self.conv5a(x)
-        x = self.activation_15(x)
-        x = self.conv5d(x)
-        x = self.activation_16(x)
+    def forward_to_fc(self, x):
+        ret_list = []
+        x = self.encoder(x)
 
-        heat = self.heat_conv1(x)
-        heat = self.relu(heat)
-        heat = self.maxpool(heat)
-        heat = self.heat_conv2(heat)
-        heat = self.relu(heat)
-        heat = self.maxpool(heat)
-        heat = self.heat_conv3(heat)
-        heat = self.relu(heat)
-        heat = self.maxpool(heat)
-        heat = self.heat_conv4(heat)
-        heat = self.relu(heat)
-        heat = self.maxpool(heat)
-        heat = self.heat_conv5(heat)
-        heat = self.relu(heat)
-        heat = self.maxpool(heat)
-        heat = heat.view(heat.size(0), -1)
-        heat = self.heat_fc(heat)
+        if 'feat' in self.paths:
+            feat = self.feat_to_fc(x)
+            feat = feat.view(feat.size(0), -1)
+            feat = self.feat_fc(feat)
+            ret_list.append(feat)
 
-        x = self.pred_cube(x)
-        x = self.activation_17(x)
-        pose = self.gen_pose(x)
+        if 'heat' in self.paths or 'pose' in self.paths:
+            x = self.decoder(x)
 
-        # x = self.encoder(x)
-        # feat = self.feature_path(x)
-        # x = self.decoder(x)
-        # heat = self.heatmap_path(x)
-        # pose = self.pose_path(x)
+        if 'heat' in self.paths:
+            heat = self.heat_to_fc(x)
+            heat = heat.view(heat.size(0), -1)
+            heat = self.heat_fc(heat)
+            ret_list.append(heat)
 
-        output = self.merge_fc(feat, heat, pose)
-        return output
+        if 'pose' in self.paths:
+            x = self.pred_cube(x)
+            x = self.activation_17(x)
+            pose = self.gen_pose(x)
+            ret_list.append(pose)
+        return torch.cat(ret_list, dim = 1)
+    
     def load_pretrain(self, model_pth):
-        state_dict = torch.load(model_pth)
-        from collections import OrderedDict
-        new_state_dict = OrderedDict()
-        for k, v in state_dict.items():
-            name = k.replace('module.', '')
-            new_state_dict[name] = v
+        print("load model from " + model_pth)
+        input_state = torch.load(model_pth)
+        to_load = OrderedDict()
+
         state = self.state_dict()
-        state.update(new_state_dict)
+
+        for k, v in input_state.items():
+            name = k.replace('module.', '')
+            if name in state:
+                to_load[name] = v
+        state.update(to_load)
         self.load_state_dict(state)
-if __name__ == '__main__':    
+    
+    def fix_pretrain(self):
+        print("fix_pretrain")
+        for param in self.encoder.parameters():
+            param.require_grad = False
+        for param in self.decoder.parameters():
+            param.require_grad = False
+        for param in self.pred_cube.parameters():
+            param.require_grad = False
+    
+    def unfix_pretrain(self):
+        print("unfix_pretrain")
+        for param in self.parameters():
+            param.require_grad = True
+
+    def fix_paths(self, paths):
+        if 'feat' in paths:
+            for param in self.feat_to_fc.parameters():
+                param.require_grad = False
+        if 'heat' in paths:
+            for param in self.heat_to_fc.parameters():
+                param.require_grad = False 
+        if 'pose' in paths:
+            for param in self.pred_cube.parameters():
+                param.require_grad = False
+    
+    def unfix_paths(self, paths):
+        if 'feat' in paths:
+            for param in self.feat_to_fc.parameters():
+                param.require_grad = True
+        if 'heat' in paths:
+            for param in self.heat_to_fc.parameters():
+                param.require_grad = True 
+        if 'pose' in paths:
+            for param in self.pred_cube.parameters():
+                param.require_grad = True
+
+
+def test_paths():
     input_size = (1, 260, 344)
     a = torch.zeros((16,) + input_size)
-    m = MM_CNN()
-    from collections import OrderedDict
-    new_state_dict = OrderedDict()
+    import itertools 
+    def findsubsets(s, n): 
+        return list(itertools.combinations(s, n)) 
+    paths = ['feat','heat','pose']
+    for i in range(1, 4):
+        allsubsets = findsubsets(paths, i)
+        if i==3:
+            allsubsets = (paths,)
+        for subset in allsubsets:
+            print(subset)
+            m = MM_CNN(paths = subset)
+            b = m(a)
+            m1 = MM_CNN(paths = ['heat'])
 
-    state_dict_pth = '../../checkpoints/pose_estimation_103.pth'
-    m.load_pretrain(state_dict_pth)
+def test_sequential():
+    m = MM_CNN(paths = ['feat', 'heat', 'pose'])
+    m.load_pretrain('../../checkpoints/pose7500/1125_15:05:54_model.pt')
+    print(m.conv1.weight.data[0])
+    print(m.encoder[0].weight.data[0])
 
+def test_fix():
+    m = MM_CNN(paths = ['feat', 'heat', 'pose'])
+    m.fix_pretrain()
+    m.unfix_pretrain()
+if __name__ == '__main__':    
+    test_fix()
     

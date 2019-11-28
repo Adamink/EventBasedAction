@@ -60,8 +60,8 @@ def main(gpus, cfg):
 
     optimizer = import_class(args.optimizer)(model.parameters(), lr = args.lr)  
     scheduler = import_class(args.scheduler)(optimizer, **args.scheduler_args)
-
-    best_metric, best_epoch = train(
+    trainer = import_class(args.trainer)
+    best_metric, best_epoch = trainer(
      args, model, train_dataloader, test_dataloader, optimizer, 
      scheduler, criterion, metric, logger, board, args.max_metric)
     logger("Best Epoch {:3d} test_metric: {:.4f}".format(best_epoch, best_metric))

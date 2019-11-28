@@ -1,5 +1,5 @@
 lr: 0.001
-epochs: 150
+epochs: 40
 batch_size: 32
 
 experiment: mm_cnn
@@ -24,7 +24,11 @@ model_args:
     - 1024
     - 26
   num_classes: 33
-
+  paths:
+    - feat
+    - heat
+    - pose
+  pretrain_pth: /mnt/hdd/wuxiao/winter/checkpoints/pose7500/1125_15:05:54_model.pt
 optimizer: torch.optim.Adam
 scheduler: torch.optim.lr_scheduler.ReduceLROnPlateau
 scheduler_args:
@@ -36,4 +40,9 @@ scheduler_args:
 criterion: torch.nn.functional.cross_entropy
 metric: utils.losses.accuracy
 max_metric: True
+trainer: utils.trainer.train
 
+stages:
+ - {epoch: 0, operation: fix_pretrain}
+ - {epoch: 20, operation: unfix_pretrain}
+ 

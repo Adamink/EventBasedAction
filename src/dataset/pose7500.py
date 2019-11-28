@@ -111,6 +111,18 @@ class Pose7500(data.Dataset):
         # initialize the heatmaps
         return gen_heatmap(pose)
 
+    def get_raw_event(self, index):
+        skeleton_basename, feature, label, cam, frame_index = self.table[index]
+        skeleton_pth = os.path.join(self.data_dir, skeleton_basename)
+        event_pth = skeleton_pth.replace('_label.h5', '.h5')
+        f = h5py.File(skeleton_pth,'r')
+        skeleton = np.array(f['XYZ'])
+        num_frame = len(skeleton)
+        f = h5py.File(event_pth,'r')
+        event = np.array(f['DVS'][frame_index][:,:,cam], dtype=np.uint8) #(260, 346)
+
+        event = np.nan_to_num(event)
+        return event, label
     def get_raw_item(self, index):
         skeleton_basename, feature, label, cam, frame_index = self.table[index]
         skeleton_pth = os.path.join(self.data_dir, skeleton_basename)
@@ -165,7 +177,7 @@ class Pose7500(data.Dataset):
         return event, heatmap
     
     def mm_cnn_getitem(self, index):
-        event, heatmap, skeleton, pose, pose_weight, label, meta = self.get_raw_item(index)
+        event, label = self.get_raw_event(index)
         event = event.astype('float32')
         if np.max(event) > 0.:
             event = (255 * event / np.max(event)) # normalize to [0,255]
