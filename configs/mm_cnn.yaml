@@ -3,19 +3,18 @@ epochs: 25
 batch_size: 32
 
 experiment: mm_cnn
-dataset: dataset.pose7500.Pose7500
+dataset: dataset.pose7500.FasterPose7500
 
 train_dataset_args:
-  data_dir: /mnt/hdd/wuxiao/DHP19/matlab_output/h5_dataset_7500_events/344x260/
+  data_dir: /mnt/hdd/wuxiao/DHP19/pose7500numpy
   p_mat_dir: /mnt/hdd/wuxiao/DHP19/P_matrices/
   mode: train
-  experiment: mm_cnn
-
+  use_percentage: 100
 test_dataset_args:
-  data_dir: /mnt/hdd/wuxiao/DHP19/matlab_output/h5_dataset_7500_events/344x260/
+  data_dir: /mnt/hdd/wuxiao/DHP19/pose7500numpy
   p_mat_dir: /mnt/hdd/wuxiao/DHP19/P_matrices/
   mode: test
-  experiment: mm_cnn
+  use_percentage: 100
 
 model: model.pose7500.MM_CNN
 model_args:

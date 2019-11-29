@@ -24,6 +24,6 @@ raw_events = join(data_dir, 'matlab_output/344x260raw/')
 pose_7500_dir = join(data_dir, 'matlab_output/h5_dataset_7500_events/344x260/')
 event_high_frame_dir = join(data_dir, 'event_high_frame/')
 action_dir = join(data_dir, 'matlab_action/h5_dataset_7500_events/344x260/')
-
+pose7500numpy_dir = join(data_dir, 'pose7500numpy/')
 
 

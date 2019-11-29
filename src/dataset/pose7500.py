@@ -11,6 +11,7 @@ from glob import glob
 from scipy.io import loadmat, savemat
 from PIL import Image
 from matplotlib import cm
+from random import sample
 
 import numpy as np
 import scipy.io as scio
@@ -19,8 +20,8 @@ import torch
 import torch.utils.data as data
 import torchvision.transforms as transforms
 
-from .utils import label_mapping
-from .utils import *
+from utils import label_mapping, import_def
+from utils import *
 
 class Pose7500(data.Dataset):
     def __init__(self, data_dir, p_mat_dir, input_size = (260, 344), mode = 'test', 
@@ -188,15 +189,68 @@ class Pose7500(data.Dataset):
     def __len__(self):
         return self.len
 
+class FasterPose7500(data.Dataset):
+    def __init__(self, data_dir, mode = 'test', cameras = [2,3], use_percentage = 100):
+        self.data_dir = data_dir
+        self.cameras = cameras
+        self.table = []
+        for pth in glob(os.path.join(data_dir, '*')):
+            data = np.load(pth, mmap_mode = 'r')
+            feature = os.path.basename(pth).split('.')[0]
+            subject, session, mov = [int(_) for _ in feature.split('_')]
+            label, is_train = label_mapping(subject, session, mov)
+            if (is_train and mode=='test') or (not is_train and mode=='train'):
+                continue
+            num_frame = len(data)
+            for cam in cameras:
+                for i in range(num_frame):
+                    self.table.append((pth, feature, label, cam, i))
+             
+        self.label = [t[2] for t in self.table]
+        self.len = len(self.table)
+        dest_len = (int)(self.len * (use_percentage / 100.0))
+        self.set_len(dest_len)
+    def __getitem__(self, index):
+        pth, feature, label, cam, i = self.table[index]
+        event = np.load(pth, mmap_mode='r')[i,:,:,cam] #(260, 344)
+        event = np.nan_to_num(event)
+        event = event.astype('float32')
+        if np.max(event) > 0.:
+            event = (255 * event / np.max(event)) # normalize to [0,255]
+        event = event.reshape((1,) + event.shape) # (1, 260, 344)
+        event = torch.from_numpy(event).type(torch.FloatTensor)
+        label = torch.tensor(label).type(torch.LongTensor)
+        return event, label
 
+    def set_len(self, l):
+        sample_index = sample(list(range(self.len)), l)
+        self.label = [self.label[_] for _ in sample_index]
+        self.table = [self.table[_] for _ in sample_index]
+        self.len = l
+    def __len__(self):
+        return self.len
 
-if __name__=='__main__':
-    np.set_printoptions(suppress=True)
+def GenPose7500Numpy():
     definitions = import_def()
-    d = Pose7500(definitions.pose_7500_dir, definitions.p_mat_dir, experiment = 'mm_cnn')
+    data_dir = definitions.pose_7500_dir
+    output_dir = definitions.pose7500numpy_dir
+    for skeleton_pth in tqdm(glob(os.path.join(data_dir, '*_7500events_label.h5'))):
+        event_pth = skeleton_pth.replace('_label.h5', '.h5')
+        skeleton_basename = os.path.basename(skeleton_pth)
+        subject = (int)(skeleton_basename.split('_')[0][1:])
+        session = (int)(skeleton_basename.split('_')[1][7:])
+        mov = (int)(skeleton_basename.split('_')[2][3:])
+        label, is_train = label_mapping(subject, session, mov)
+        f = h5py.File(event_pth, 'r')
+        event = np.array(f['DVS'][:,:,:,:], dtype=np.uint8) #(260, 346)
+        np.save(os.path.join(output_dir, '{:d}_{:d}_{:d}.npy'.format(subject, session, mov)), event)
+
+def test_faster():
+    definitions = import_def()
+    d = FasterPose7500(definitions.pose7500numpy_dir, 'test')
     event, label = d[0]
-    test_dataloader = torch.utils.data.DataLoader(
-        d,
-        batch_size=32,
-        shuffle=True,
-        num_workers=4)
+    print(len(d))
+    print(event.size())
+    print(label)
+if __name__=='__main__':
+    test_faster()

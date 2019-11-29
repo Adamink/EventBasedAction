@@ -11,7 +11,7 @@ from random import sample
 import torch
 import torch.utils.data as data
 
-from .utils import label_mapping, slicing_windows, parse_7500_filename
+from utils import label_mapping, slicing_windows, parse_7500_filename
 class Action(data.Dataset):
     def __init__(self, data_dir, mode = 'test', cameras = [2, 3],
      window_size = 10, step_size = 5, use_percentage = 100):
@@ -24,19 +24,16 @@ class Action(data.Dataset):
 
         self.table = []
 
-        for skeleton_pth in glob(os.path.join(data_dir, '_label.h5')):
+        for skeleton_pth in glob(os.path.join(data_dir, '*_label.h5')):
             data_pth = skeleton_pth.replace('_label.h5','.h5')
-            
             subject, session, mov = parse_7500_filename(os.path.basename(data_pth))
-            feature = '_'.join([str(x) for x in [subject, session, mov, cam]])
+            feature = '_'.join([str(x) for x in [subject, session, mov]])
             label, is_train = label_mapping(subject, session, mov)
             if (is_train and mode=='test') or (not is_train and mode=='train'):
                 continue
             f = h5py.File(skeleton_pth,'r')
             skeleton = np.array(f['XYZ'], dtype=np.float32) #(num_frame, 3, 13)
             num_frame = len(skeleton)
-            data = np.load(data_pth, mmap_mode='r') #(4, num_frame, 260 ,344)
-            num_frame = data.shape[1]
             window_num, _ = slicing_windows(num_frame, self.window_size, self.step_size)
             for cam in cameras:
                 for i in range(0, window_num):
@@ -62,7 +59,7 @@ class Action(data.Dataset):
 
         start_idx = self.step_size * window_id
         end_idx = start_idx + self.window_size
-        events = np.array(f['DVS'][start_idx:end_idx][:,:,cam], dtype=np.uint8) #(10, 260, 344)
+        events = np.array(f['DVS'][start_idx:end_idx, :,:,cam], dtype=np.uint8) #(10, 260, 344)
         for i in range(self.window_size):
             s = np.max(events[i])
             if s > 0.:
@@ -76,6 +73,7 @@ def test_dataset():
     from utils import import_def
     definitions = import_def()
     d = Action(definitions.action_dir, 'test')
+    print(d.len)
     event, label = d[0]
     print(event.size())
     print(event.type())
