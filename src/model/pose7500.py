@@ -4,7 +4,7 @@ import numpy as np
 from collections import OrderedDict
 
 class DHP_CNN(nn.Module):
-    def __init__(self, input_size = (1, 260, 344)):
+    def __init__(self, input_size = (1, 260, 344), pretrain_pth=''):
         # input: (batch, 1/3, 260, 344)
         # output: (batch, 13, 260, 344)
         super().__init__()
@@ -46,6 +46,9 @@ class DHP_CNN(nn.Module):
         self.activation_16 = nn.ReLU()
         self.pred_cube = nn.Conv2d(16, 13, 3, padding = 1, bias = False)
         self.activation_17 = nn.ReLU()
+
+        if pretrain_pth!='':
+            self.load_pretrain(pretrain_pth)
     def forward(self,x):
         x = self.conv1(x)
         x = self.activation_1(x)
@@ -84,7 +87,19 @@ class DHP_CNN(nn.Module):
         x = self.pred_cube(x)
         x = self.activation_17(x)
         return x
+    def load_pretrain(self, model_pth):
+        print("load model from " + model_pth)
+        input_state = torch.load(model_pth)
+        to_load = OrderedDict()
 
+        state = self.state_dict()
+
+        for k, v in input_state.items():
+            name = k.replace('module.', '')
+            if name in state:
+                to_load[name] = v
+        state.update(to_load)
+        self.load_state_dict(state)
 class Heatmap2Pose(nn.Module):
     def __init__(self):
         super(Heatmap2Pose, self).__init__()

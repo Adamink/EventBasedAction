@@ -53,6 +53,7 @@ scheduler_args:
 
 criterion: torch.nn.functional.cross_entropy
 metric: utils.losses.accuracy
+test_interval: 1
 max_metric: True
 trainer: utils.trainer.train
 

@@ -32,5 +32,6 @@ scheduler_args:
 
 criterion: utils.losses.mse2D
 metric: utils.losses.mpjpe
+test_interval: 1
 max_metric: False
 trainer: utils.trainer.train

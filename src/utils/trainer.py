@@ -62,7 +62,7 @@ def test_one_epoch(classifier, dataloader, criterion, metric_func):
 
 def train(args, model, train_dataloader, test_dataloader, optimizer, scheduler,
  criterion, metric, logger, board, test_interval = 1, max_metric = False):
-
+    print('max_metric='+str(max_metric))
     def better(a, b):
         if max_metric:
             return a > b
@@ -108,7 +108,7 @@ def train(args, model, train_dataloader, test_dataloader, optimizer, scheduler,
             board.add_scalars('metric', {'test_metric':test_metric}, epoch)
 
             if better(test_metric, best_metric):
-                print("Epoch: {:>3d} Saving Model".format(epoch))
+                logger("Epoch: {:>3d} Saving Model".format(epoch))
                 best_metric, best_epoch = test_metric, epoch
                 torch.save(model.state_dict(), args.model_savepth)
                 torch.save(optimizer.state_dict(), args.optim_savepth)

@@ -63,6 +63,7 @@ def main(gpus, cfg):
     trainer = import_class(args.trainer)
     best_metric, best_epoch = trainer(
      args, model, train_dataloader, test_dataloader, optimizer, 
-     scheduler, criterion, metric, logger, board, args.max_metric)
+     scheduler, criterion, metric, logger, board, args.test_interval, args.max_metric)
     logger("Best Epoch {:3d} test_metric: {:.4f}".format(best_epoch, best_metric))
     logger.close()
+    board.close()

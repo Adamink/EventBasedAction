@@ -91,6 +91,9 @@ def parse_raw_filename(name):
     mov = (int)(name.split('_')[2][3:])
     return subject, session, mov
 
+def parse_7500_filename(name):
+    # S5_session3_mov3_7500events.h5
+    return parse_raw_filename(name)
 if __name__=='__main__':
     definitions = import_def()
     print(definitions.src_dir)
