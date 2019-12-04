@@ -10,7 +10,11 @@ class DeepLSTM(nn.Module):
         assert arch in ['GRU','LSTM']
         self.arch_option = arch_option
         self.mean_after_fc = mean_after_fc
-        self.mm_cnn = MM_CNN(fc_size, num_classes, paths, pretrain_pth, output_before_fc = True)
+        self.num_classes = num_classes
+        if arch_option==0 or arch_option==1:
+            self.mm_cnn = MM_CNN(fc_size, num_classes, paths, pretrain_pth, output_before_fc = True)
+        elif arch_option==2 or arch_option==3:
+            self.mm_cnn = MM_CNN(fc_size, num_classes, paths, pretrain_pth, output_before_fc = False)
         self.mm_feature_size = (int)(self.mm_cnn.final_fc_size)
         self.mm_cnn = TimeDistributed(self.mm_cnn)
         if arch_option==0:
@@ -23,6 +27,8 @@ class DeepLSTM(nn.Module):
             self.gru3 = nn.GRU(256, 128, 1, batch_first=True)
             # self.tnn = nn.Sequential(self.gru1, self.gru2, self.gru3)
             self.fc = nn.Linear(128, num_classes)
+        elif arch_option==2 or arch_option==3:
+            self.fc = nn.Identity()
         if mean_after_fc:
             self.fc = TimeDistributed(self.fc)
             
@@ -41,6 +47,15 @@ class DeepLSTM(nn.Module):
             x, _ = self.gru1(x)
             x, _ = self.gru2(x)
             x, _ = self.gru3(x)
+        elif self.arch_option==2:
+            x = torch.mean(x, dim = 1) #(batch, time, 33)
+            return x
+        elif self.arch_option==3: # max response
+            y, y_where = x.max(dim = 2) #(batch, time)
+            t, t_where = y.max(dim = 1) #(batch, )
+            t_where = t_where.view((t_where.size() + (1,1)))
+            t_where = t_where.repeat(1,1,self.num_classes)
+            x = torch.gather(x, dim = 1, index = t_where)
         # x: (batch, seq_len, mm_feature_size)
         if self.mean_after_fc:
             x = self.fc(x)

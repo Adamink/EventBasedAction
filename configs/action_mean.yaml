@@ -1,5 +1,5 @@
 lr: 0.001
-epochs: 150
+epochs: 0
 batch_size: 4
 
 experiment: action
@@ -37,7 +37,7 @@ model_args:
     - heat
     - pose
   pretrain_pth: /mnt/hdd/wuxiao/winter/checkpoints/mm_cnn/1129_18:39:51_model.pt
-  arch_option: 1
+  arch_option: 2
   mean_after_fc: True
 optimizer: torch.optim.Adam
 scheduler: torch.optim.lr_scheduler.ReduceLROnPlateau

@@ -1,32 +1,23 @@
 lr: 0.001
-epochs: 150
-batch_size: 4
+epochs: 50
+batch_size: 32
 
-experiment: action
+experiment: mm_cnn
 dataset: dataset.action.Action
 
 train_dataset_args:
-  data_dir: /mnt/hdd/wuxiao/DHP19/matlab_action/h5_dataset_7500_events/344x260/
+  data_dir: /mnt/hdd/wuxiao/DHP19/matlab_action/h5_dataset_7500_events/344x260
   mode: train
-  cameras:
-   - 2
-   - 3
-  window_size: 10
-  step_size: 5
   use_percentage: 100
-
+  experiment: pose
 test_dataset_args:
-  data_dir: /mnt/hdd/wuxiao/DHP19/matlab_action/h5_dataset_7500_events/344x260/
+  data_dir: /mnt/hdd/wuxiao/DHP19/matlab_action/h5_dataset_7500_events/344x260
   mode: test
-  cameras:
-   - 2
-   - 3
-  window_size: 10
-  step_size: 5
   use_percentage: 100
-model: model.action.DeepLSTM
+  experiment: pose
+
+model: model.pose7500.MM_CNN
 model_args:
-  arch: GRU
   fc_size:
     - 1024
     - 1024
@@ -36,9 +27,7 @@ model_args:
     - feat
     - heat
     - pose
-  pretrain_pth: /mnt/hdd/wuxiao/winter/checkpoints/mm_cnn/1129_18:39:51_model.pt
-  arch_option: 1
-  mean_after_fc: True
+  pretrain_pth: /mnt/hdd/wuxiao/winter/checkpoints/pose7500/1202_00:56:18_model.pt
 optimizer: torch.optim.Adam
 scheduler: torch.optim.lr_scheduler.ReduceLROnPlateau
 scheduler_args:
@@ -54,6 +43,6 @@ max_metric: True
 trainer: utils.trainer.train
 
 stages:
- - {epoch: 0, operation: fix_cnn}
- - {epoch: 20, operation: unfix_cnn}
+ - {epoch: 0, operation: fix_pretrain}
+ - {epoch: 10, operation: unfix_pretrain}
  

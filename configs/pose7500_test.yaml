@@ -1,0 +1,38 @@
+lr: 0.001
+epochs: 0
+batch_size: 32
+
+experiment: pose7500
+dataset: dataset.pose7500.Pose7500
+
+train_dataset_args:
+  data_dir: /mnt/hdd/wuxiao/DHP19/matlab_output/h5_dataset_7500_events/344x260/
+  p_mat_dir: /mnt/hdd/wuxiao/DHP19/P_matrices/
+  mode: train
+  experiment: dhpcnn
+
+test_dataset_args:
+  data_dir: /mnt/hdd/wuxiao/DHP19/matlab_output/h5_dataset_7500_events/344x260/
+  p_mat_dir: /mnt/hdd/wuxiao/DHP19/P_matrices/
+  mode: test
+  experiment: dhpcnn
+
+model: model.pose7500.DHP_CNN
+model_args:
+  input_size:
+    - 1
+    - 260
+    - 344
+  pretrain_pth: /mnt/hdd/wuxiao/winter/checkpoints/pose7500/1125_15:05:54_model.pt
+optimizer: torch.optim.RMSprop
+scheduler: torch.optim.lr_scheduler.MultiStepLR
+scheduler_args:
+  milestones: 
+    - 10
+    - 15
+
+criterion: utils.losses.mse2D
+metric: utils.losses.mpjpe
+test_interval: 1
+max_metric: False
+trainer: utils.trainer.train

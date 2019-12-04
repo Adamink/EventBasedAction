@@ -1,12 +1,12 @@
-rootCodeFolder = '~/summer/data_preparation/DHP19'; % root directory of the git repo.
-rootDataFolder = '/mnt/data1/wuxiao/DHP19'; % root directory of the data downloaded from resiliosync.
-outDatasetFolder = '/mnt/data1/wuxiao/DHP19/matlab_output';
+rootCodeFolder = '/mnt/hdd/wuxiao/winter/matlab/DHP19/'; % root directory of the git repo.
+rootDataFolder = '/mnt/hdd/wuxiao/DHP19/'; % root directory of the data downloaded from resiliosync.
+% outDatasetFolder = '/mnt/data1/wuxiao/DHP19/matlab_output';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Cameras number and resolution. Constant for DHP19.
 nbcam = 4;
-sx = 346;
+sx = 344;
 sy = 260;
 
 %%%%%%%%%%% PARAMETERS: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -60,20 +60,20 @@ addpath(fullfile(rootCodeFolder, 'read_aedat/'));
 addpath(fullfile(rootCodeFolder, 'generate_DHP19/'));
 
 % Setup output folder path, according to accumulation type and spatial resolution.
-outputFolder = fullfile(outDatasetFolder, out_folder_append,[num2str(reshapex),'x',num2str(reshapey)]);
+% outputFolder = fullfile(outDatasetFolder, out_folder_append,[num2str(reshapex),'x',num2str(reshapey)]);
 
-log_path = fullfile(outDatasetFolder, out_folder_append);
-log_file = sprintf('%s/log_generation_%sx%s_%s.log',log_path,num2str(reshapex),num2str(reshapey), t);
+% log_path = fullfile(outDatasetFolder, out_folder_append);
+% log_file = sprintf('%s/log_generation_%sx%s_%s.log',log_path,num2str(reshapex),num2str(reshapey), t);
 
 
-aedatPath = '/mnt/data1/wuxiao/DHP19/DVS_movies/S1/session1/mov1.aedat';
-movementsPath = '/mnt/data1/wuxiao/DHP19/DVS_movies/S1/session1';
-labelPath = '/mnt/data1/wuxiao/DHP19/Vicon_data/S1_1_1.mat';
-fileID = fopen('debug.log', 'w');
-out_file = './debug'
-movString = 'mov1'
+aedatPath = '/mnt/hdd/wuxiao/DHP19/DVS_movies/S1/session1/mov1.aedat';
+movementsPath = '/mnt/hdd/wuxiao/DHP19/DVS_movies/S1/session1';
+% labelPath = '/mnt/data1/wuxiao/DHP19/Vicon_data/S1_1_1.mat';
+% fileID = fopen('debug.log', 'w');
+% out_file = './debug'
+movString = 'mov1';
 aedat = ImportAedat([movementsPath '/'], strcat(movString, '.aedat'));
-XYZPOS = load(labelPath);
+% XYZPOS = load(labelPath);
 events = int64(aedat.data.polarity.timeStamp);
 %%% conditions on special events %%%
 try
@@ -141,28 +141,6 @@ catch
     stopTime = events(end); 
     
 end % end try reading special events
-
-ExtractEventsToFramesAndMeanLabels( ...
-fileID, ...
-aedat, ...
-events, ...
-eventsPerFrame*nbcam, ...
-startTime, ...
-stopTime, ...
-out_file, ...
-XYZPOS, ...
-sx, ...
-sy, ...
-nbcam, ...
-thrEventHotPixel, ...
-dt, ...
-xmin_mask1, xmax_mask1, ymin_mask1, ymax_mask1, ...
-xmin_mask2, xmax_mask2, ymin_mask2, ymax_mask2, ...
-do_subsampling, ...
-reshapex, ...
-reshapey, ...
-saveHDF5, ...
-convert_labels)
 
 
 

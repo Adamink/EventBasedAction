@@ -55,6 +55,14 @@ def gen_heatmap(pose, image_size = [260, 344], decay = True):
                 heatmap[(x-k):(x+k+1),(y-k):(y+k+1), fmidx] = 1
     return heatmap
 
+def visualize_event(event, save_pth):
+    # event: (H, W)
+    plt.figure()
+    plt.imshow(event, cmap = 'gray')
+    plt.savefig(save_pth)
+    plt.close()
+    return
+    
 def visualize_event_heatmap(event, heatmap, save_pth):
     # event: (H, W)
     # heatmap: (H, W, 13)
@@ -62,6 +70,7 @@ def visualize_event_heatmap(event, heatmap, save_pth):
     plt.imshow(event, cmap = 'gray')
     plt.imshow(np.sum(heatmap, axis=-1), alpha=.5)
     plt.savefig(save_pth)
+    plt.close()
     return 
 
 def visualize_heatmap(heatmap, save_pth):
@@ -69,6 +78,7 @@ def visualize_heatmap(heatmap, save_pth):
     plt.figure()
     plt.imshow(np.sum(heatmap, axis =-1), alpha = .5)
     plt.savefig(save_pth)
+    plt.close()
 
 def gen_bone_from_joint(joint):
     C, T, V, M = joint.shape

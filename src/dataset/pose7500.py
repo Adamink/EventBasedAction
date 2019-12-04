@@ -20,8 +20,10 @@ import torch
 import torch.utils.data as data
 import torchvision.transforms as transforms
 
-from utils import label_mapping, import_def
-from utils import *
+if __name__=='__main__':
+    from utils import *
+else:
+    from .utils import *
 
 class Pose7500(data.Dataset):
     def __init__(self, data_dir, p_mat_dir, input_size = (260, 344), mode = 'test', 
@@ -39,7 +41,7 @@ class Pose7500(data.Dataset):
         test_table = []
         all_table = []
         nocam_table = []
-
+        action_table = []
         which_table = {'train':train_table, 'test':test_table, 'all': all_table, 'nocam': nocam_table}
 
         for skeleton_pth in glob(os.path.join(data_dir, '*_7500events_label.h5')):
@@ -52,6 +54,9 @@ class Pose7500(data.Dataset):
             f = h5py.File(skeleton_pth, 'r')
             skeleton = np.array(f['XYZ'], dtype=np.float32) #(num_frame, 3, 13)
             num_frame = len(skeleton)
+            for cam in cameras:
+                if (is_train and mode=='train') or (not is_train and mode=='test'):
+                    action_table.append(skeleton_basename, feature, label, cam, -1)
             for i in range(num_frame):
                 feature ='_'.join([str(x) for x in [subject, session, mov]])
                 which_table['nocam'].append((skeleton_basename, feature, label, -1, i))
@@ -62,8 +67,10 @@ class Pose7500(data.Dataset):
                         which_table['train'].append((skeleton_basename, feature, label, cam, i))
                     else:
                         which_table['test'].append((skeleton_basename, feature, label, cam, i))
-
-        self.table = which_table[mode]
+        if experiment=='action':
+            self.table = action_table
+        else:
+            self.table = which_table[mode]
         self.label = [t[1] for t in which_table[mode]]
         self.len = len(self.table)
 
@@ -165,7 +172,8 @@ class Pose7500(data.Dataset):
             return self.dhpcnn_getitem(index)
         elif self.experiment=='mm_cnn':
             return self.mm_cnn_getitem(index)
-
+        elif self.experiment=='action':
+            return self.action_getitem(index)
     def dhpcnn_getitem(self, index):
         event, heatmap, skeleton, pose, pose_weight, label, meta = self.get_raw_item(index)
         event = event.astype('float32')
@@ -186,14 +194,25 @@ class Pose7500(data.Dataset):
         event = torch.from_numpy(event).type(torch.FloatTensor)
         label = torch.tensor(label).type(torch.LongTensor)
         return event, label
+    def action_getitem(self, index):
+        skeleton_basename, feature, label, cam, frame_index = self.table[index]
+        skeleton_pth = os.path.join(self.data_dir, skeleton_basename)
+        event_pth = skeleton_pth.replace('_label.h5', '.h5')
+        f = h5py.File(event_pth,'r')
+        event = np.array(f['DVS'][:,:,:,cam], dtype=np.uint8) #(260, 346)
+        event = np.nan_to_num(event)
     def __len__(self):
         return self.len
 
 class FasterPose7500(data.Dataset):
-    def __init__(self, data_dir, mode = 'test', cameras = [2,3], use_percentage = 100):
+    def __init__(self, data_dir, mode = 'test', cameras = [2,3], use_percentage = 100, experiment = 'pose',
+    window_size = 10, step_size = 5):
         self.data_dir = data_dir
         self.cameras = cameras
         self.table = []
+        self.experiment = experiment
+        self.window_size = window_size
+        self.step_size = step_size
         for pth in glob(os.path.join(data_dir, '*')):
             data = np.load(pth, mmap_mode = 'r')
             feature = os.path.basename(pth).split('.')[0]
@@ -202,9 +221,18 @@ class FasterPose7500(data.Dataset):
             if (is_train and mode=='test') or (not is_train and mode=='train'):
                 continue
             num_frame = len(data)
-            for cam in cameras:
-                for i in range(num_frame):
-                    self.table.append((pth, feature, label, cam, i))
+            if experiment=='long':
+                for cam in cameras:
+                    self.table.append((pth, feature, label, cam, -1))
+            elif experiment=='short':
+                window_num, _ = slicing_windows(num_frame, self.window_size, self.step_size)
+                for cam in cameras:
+                    for i in range(window_num):
+                        self.table.append((pth, feature, label, cam, i))
+            else:
+                for cam in cameras:
+                    for i in range(num_frame):
+                        self.table.append((pth, feature, label, cam, i))
              
         self.label = [t[2] for t in self.table]
         self.len = len(self.table)
@@ -212,12 +240,30 @@ class FasterPose7500(data.Dataset):
         self.set_len(dest_len)
     def __getitem__(self, index):
         pth, feature, label, cam, i = self.table[index]
-        event = np.load(pth, mmap_mode='r')[i,:,:,cam] #(260, 344)
-        event = np.nan_to_num(event)
-        event = event.astype('float32')
-        if np.max(event) > 0.:
-            event = (255 * event / np.max(event)) # normalize to [0,255]
-        event = event.reshape((1,) + event.shape) # (1, 260, 344)
+        if self.experiment=='long':
+            event = np.load(pth, mmap_mode='r')[:,:,:,cam]
+            event = np.nan_to_num(event)
+            event = event.astype('float32')
+            max_event = np.max(event, axis = 0) + 1e-7
+            event = event / max_event
+
+        elif self.experiment=='short':
+            start_idx = self.step_size * i
+            end_idx = start_idx + self.window_size
+            event = np.load(pth, mmap_mode='r')[start_idx:end_idx,:,:,cam]
+            event = np.nan_to_num(event)
+            event = event.astype('float32')
+            max_event = np.max(event, axis = 0) + 1e-7
+            event = event / max_event
+            event = np.expand_dims(event, axis = 1)
+        else:
+            event = np.load(pth, mmap_mode='r')[i,:,:,cam] #(260, 344)
+            event = np.nan_to_num(event)
+            event = event.astype('float32')
+            if np.max(event) > 0.:
+                event = (255 * event / np.max(event)) # normalize to [0,255]
+            event = event.reshape((1,) + event.shape) # (1, 260, 344)
+
         event = torch.from_numpy(event).type(torch.FloatTensor)
         label = torch.tensor(label).type(torch.LongTensor)
         return event, label
@@ -247,10 +293,15 @@ def GenPose7500Numpy():
 
 def test_faster():
     definitions = import_def()
-    d = FasterPose7500(definitions.pose7500numpy_dir, 'test')
+    d = FasterPose7500(definitions.pose7500numpy_dir, 'test', experiment = 'short')
     event, label = d[0]
     print(len(d))
     print(event.size())
     print(label)
+
+def test_len():
+    definitions = import_def()
+    d = FasterPose7500(definitions.pose7500numpy_dir, 'train')
+    print(len(d))
 if __name__=='__main__':
     test_faster()

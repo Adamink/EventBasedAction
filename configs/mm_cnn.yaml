@@ -1,5 +1,5 @@
 lr: 0.001
-epochs: 25
+epochs: 60
 batch_size: 32
 
 experiment: mm_cnn
@@ -7,12 +7,10 @@ dataset: dataset.pose7500.FasterPose7500
 
 train_dataset_args:
   data_dir: /mnt/hdd/wuxiao/DHP19/pose7500numpy
-  p_mat_dir: /mnt/hdd/wuxiao/DHP19/P_matrices/
   mode: train
   use_percentage: 100
 test_dataset_args:
   data_dir: /mnt/hdd/wuxiao/DHP19/pose7500numpy
-  p_mat_dir: /mnt/hdd/wuxiao/DHP19/P_matrices/
   mode: test
   use_percentage: 100
 
