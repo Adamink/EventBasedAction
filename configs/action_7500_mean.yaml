@@ -2,7 +2,7 @@ lr: 0.001
 epochs: 0
 batch_size: 4
 
-experiment: test
+experiment: action
 dataset: dataset.pose7500.FasterPose7500
 
 train_dataset_args:
@@ -11,20 +11,22 @@ train_dataset_args:
   cameras:
    - 2
    - 3
+  use_percentage: 100
+  experiment: long_random
   window_size: 10
   step_size: 5
-  use_percentage: 100
-  experiment: short
+
 test_dataset_args:
   data_dir: /mnt/hdd/wuxiao/DHP19/pose7500numpy
   mode: test
   cameras:
    - 2
    - 3
+  use_percentage: 100
+  experiment: long_random
   window_size: 10
   step_size: 5
-  use_percentage: 100
-  experiment: short
+
 model: model.action.DeepLSTM
 model_args:
   arch: GRU
@@ -36,7 +38,8 @@ model_args:
   paths:
     - feat
     - heat
-  pretrain_pth: /mnt/hdd/wuxiao/winter/checkpoints/mm_cnn/1207_01:44:11_model.pt
+    - pose
+  pretrain_pth: /mnt/hdd/wuxiao/winter/checkpoints/mm_cnn/1130_01:03:49_model.pt
   arch_option: 2
   mean_after_fc: True
 optimizer: torch.optim.Adam

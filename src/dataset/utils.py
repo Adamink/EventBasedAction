@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+import pylab
 import sys
 
 def import_def():
@@ -57,7 +58,9 @@ def gen_heatmap(pose, image_size = [260, 344], decay = True):
 
 def visualize_event(event, save_pth):
     # event: (H, W)
-    plt.figure()
+    fig = plt.figure()
+    plt.axis('off')
+    fig.patch.set_visible(False)
     plt.imshow(event, cmap = 'gray')
     plt.savefig(save_pth)
     plt.close()
@@ -66,7 +69,9 @@ def visualize_event(event, save_pth):
 def visualize_event_heatmap(event, heatmap, save_pth):
     # event: (H, W)
     # heatmap: (H, W, 13)
-    plt.figure()
+    fig = plt.figure()
+    plt.axis('off')
+    fig.patch.set_visible(False)
     plt.imshow(event, cmap = 'gray')
     plt.imshow(np.sum(heatmap, axis=-1), alpha=.5)
     plt.savefig(save_pth)
@@ -75,11 +80,58 @@ def visualize_event_heatmap(event, heatmap, save_pth):
 
 def visualize_heatmap(heatmap, save_pth):
     # heatmap: (260, 346, 13)
-    plt.figure()
-    plt.imshow(np.sum(heatmap, axis =-1), alpha = .5)
+    fig = plt.figure()
+    plt.axis('off')
+    fig.patch.set_visible(False)
+    to_show = np.sum(heatmap, axis =-1)
+    fig.patch.set_facecolor('black')
+    # print(to_show)
+    #cmap = plt.cm.jet
+    # cmap.set_under(color='black')    
+    plt.imshow(to_show, vmin=0.01)
+    # plt.imshow(to_show, cmap = cmap)
     plt.savefig(save_pth)
     plt.close()
 
+def visualize_pose(pose, save_pth):
+    # pose: (2, 13)
+    fig = plt.figure()
+    plt.axis('off')
+    fig.patch.set_visible(False)
+
+    image_size = [260, 344]
+    image_h, image_w = image_size
+    pylab.xlim([0, image_w])
+    pylab.ylim([0, image_h])
+    v = pose[0] #
+    v = image_h - v
+    u = pose[1] # 
+    k = 2 # constant used to better visualize the joints when not using decay
+
+    mask = np.ones(u.shape).astype(np.float32)
+    mask[u >= image_w - 1] = 0
+    mask[u <= 0] = 0
+    mask[v >= image_h - 1] = 0
+    mask[v <= 0] = 0
+
+    # directed_edges = [(1,3),(2,4),(3,5),(4,6),(1,7),(2,8),(7,9),(8,10),(9,11),(10,12)]
+    edges = [(0,1),(0,2),(1,2),(1,3),(2,4),(3,7),(4,8),(1,5),(2,6),(5,6),(5,9),(6,10),(9,11),(10,12)]
+    plt.scatter(u[0],v[0],color='r',marker='o',s=60, zorder = 3)
+    plt.scatter(u,v,color='r',marker='o',s=20, zorder = 2)
+    for p1,p2 in edges:
+        x = u[p1], u[p2]
+        y = v[p1], v[p2]
+        if mask[p1] and mask[p2]:
+            plt.plot(x, y,linewidth=2,color='b', zorder= 1)
+    # i = 9
+    # u[i] = 0
+    # v[i] = 0
+    # plt.scatter(u,v)
+
+    plt.savefig(save_pth)
+    # with open(save_pth, 'w') as outfile:
+    #     fig.canvas.print_png(outfile)
+    plt.close()
 def gen_bone_from_joint(joint):
     C, T, V, M = joint.shape
     directed_edges = [(1,3),(2,4),(3,5),(4,6),(1,7),(2,8),(7,9),(8,10),(9,11),(10,12)]

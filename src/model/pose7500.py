@@ -121,11 +121,12 @@ class MergeFC(nn.Module):
 
 class MM_CNN(nn.Module):
     def __init__(self, fc_size = (1024, 1024, 26), num_classes = 33, 
-     paths = ['feat', 'heat', 'pose'], pretrain_pth = '', output_before_fc = False):
+     paths = ['feat', 'heat', 'pose'], pretrain_pth = '', output_before_fc = False, output_both = False):
         super().__init__()
         c = 1
         self.feat_fc_size, self.heat_fc_size, self.pose_fc_size = fc_size
         self.output_before_fc = output_before_fc
+        self.output_both = output_both
         self.paths = paths
         self.fc_dict = OrderedDict()
         self.fc_dict['feat'] = self.feat_fc_size
@@ -266,10 +267,15 @@ class MM_CNN(nn.Module):
         if pretrain_pth!='':
             self.load_pretrain(pretrain_pth)
     def forward(self, x):
-        x = self.forward_to_fc(x)
-        if not self.output_before_fc:
-            x = self.final_fc(x)
-        return x
+        if not self.output_both:
+            x = self.forward_to_fc(x)
+            if not self.output_before_fc:
+                x = self.final_fc(x)
+            return x
+        else:
+            x = self.forward_to_fc(x)
+            y = self.final_fc(x)
+            return x,y
 
     def forward_to_fc(self, x):
         ret_list = []
