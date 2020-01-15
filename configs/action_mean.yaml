@@ -35,8 +35,7 @@ model_args:
   num_classes: 33
   paths:
     - feat
-    - heat
-  pretrain_pth: /mnt/hdd/wuxiao/winter/checkpoints/mm_cnn/1207_01:44:11_model.pt
+  pretrain_pth: /mnt/hdd/wuxiao/winter/checkpoints/mm_cnn/1206_16:22:01_model.pt
   arch_option: 2
   mean_after_fc: True
 optimizer: torch.optim.Adam

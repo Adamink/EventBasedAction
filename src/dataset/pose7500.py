@@ -306,7 +306,7 @@ class FasterPose7500(data.Dataset):
                 if max_event > 0.:
                     event[i] = (255 * event[i] / max_event)
             event = np.expand_dims(event, axis = 1)
-        elif self.experiment=='pose':
+        elif self.experiment=='mm_cnn' or self.experiment=='pose' or self.experiment=='shuffle':
             event = np.load(pth, mmap_mode='r')[i,:,:,cam]
             event = np.nan_to_num(event)
             event = event.astype('float32')
@@ -464,6 +464,9 @@ def test_faster_dhpcnn():
     event, heatmap = d[0]
     print(event.shape)
     print(heatmap.shape)
+def get_len():
+    definitions = import_def() 
+    d = FasterPose7500(definitions.new_pose_numpy_dir, '', '', 'train', experiment = 'mm_cnn')
+    print(len(d))
 if __name__=='__main__':
-    #visualize_them()
-    visualize_them()
+    get_len()

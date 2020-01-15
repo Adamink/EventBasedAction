@@ -61,13 +61,29 @@ def test_one_epoch(classifier, dataloader, criterion, metric_func):
 
     return test_loss / test_all, test_metric / test_all, data_time, model_time
 
+def stat_one_epoch(classifier, dataloader):
+    classifier.eval()
+    y_true, y_pred = [], []
+    with torch.no_grad(), tqdm(total = len(dataloader)) as pbar:
+        for i, data in enumerate(dataloader):
+            pbar.update(1)
+            source, target = data
+            source, target = source.cuda(), target.cuda()
+            pred = classifier(source)
+            pred_label = pred.max(dim = 1)[1]
+            y_true.append(target.cpu().numpy())
+            y_pred.append(pred_label.cpu().numpy())
+    
+    return np.concatenate(y_pred, axis = 0), np.concatenate(y_true, axis = 0), 
+
 def test_long_one_epoch(classifier, dataloader, gpu_len, arch_option = 0):
     classifier.eval()
     little_batch = 32 * gpu_len
     correct = 0
     total = 0
-    with torch.no_grad():
+    with torch.no_grad(), tqdm(total = len(dataloader)) as pbar:
         for idx, data in enumerate(dataloader):
+            pbar.update(1)
             source_, target, feature = data #(len, 1, 260, 344), int
             video_len = source_.size(0) // little_batch
             video_rest = source_.size(0) % little_batch
@@ -91,15 +107,16 @@ def test_long_one_epoch(classifier, dataloader, gpu_len, arch_option = 0):
                     counts = np.bincount(pred_max)
                     pred_final = np.argmax(counts)
                 else:
-                    if idx==0:
-                        for t in range(10):
-                            to_print = pred_all[t].cpu().numpy()
-                            for fp in to_print:
-                                print('{:.2f}'.format(fp), end = ' ')
-                            print('*' * 30)
+                    if False:
+                        if idx==0:
+                            for t in range(10):
+                                to_print = pred_all[t].cpu().numpy()
+                                for fp in to_print:
+                                    print('{:.2f}'.format(fp), end = ' ')
+                                print('*' * 30)
                     pred_mean = torch.mean(pred_all, dim = 0, keepdim=True) #(33)
                     pred_final = pred_mean.max(dim = 1)[1].item()
-            print('{:<8s}: {:>2d}-{:>2d}'.format(feature, pred_final, target))
+            # print('{:<8s}: {:>2d}-{:>2d}'.format(feature, pred_final, target))
             correct += (pred_final==target)
             total += 1
     return correct / total

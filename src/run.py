@@ -1,5 +1,5 @@
 from main import main
 if __name__ =='__main__':
-    gpus = ['0','1','6','8']
-    cfg = '../configs/pose_7500_new.yaml'
+    gpus = ['1','2','3','4']
+    cfg = '../configs/shuffle_feat.yaml'
     main(gpus, cfg)

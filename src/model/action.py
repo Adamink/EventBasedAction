@@ -104,6 +104,9 @@ class DeepLSTM(nn.Module):
         elif self.arch_option==4:
             x = x.view((-1,) + (x.size(2),))
             return x
+        elif self.arch_option==7:
+            x,x_where = x.max(dim = 2) #(batch, time)
+            
 
                 
         # x: (batch, seq_len, mm_feature_size)

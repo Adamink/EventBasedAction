@@ -13,6 +13,8 @@ checkpoints_dir = join(project_dir, 'checkpoints/')
 figures_dir = join(project_dir, 'figures/')
 results_dir = join(project_dir, 'results/')
 log_dir = results_dir 
+stat_dir = join(project_dir, 'results/stat/')
+config_dir = join(project_dir, 'configs/')
 
 # data
 vicon_dir = join(data_dir, 'Vicon_data/')

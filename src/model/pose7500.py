@@ -381,6 +381,31 @@ def test_fix():
     m = MM_CNN(paths = ['feat', 'heat', 'pose'])
     m.fix_pretrain()
     m.unfix_pretrain()
+
+def count_params_for_model(m):
+    model_parameters = filter(lambda p: p.requires_grad, m.parameters())
+    params = sum([np.prod(p.size()) for p in model_parameters])
+    return params
+def get_parameter_num():
+    m = MM_CNN(paths = ['feat', 'heat', 'pose'])
+    m.unfix_pretrain()
+    print(count_params_for_model(m))
+    print(count_params_for_model(m.encoder))
+    print(count_params_for_model(m.feat_to_fc))
+    print(count_params_for_model(m.feat_fc))
+    print(count_params_for_model(m.decoder))
+    print(count_params_for_model(m.heat_to_fc))
+    print(count_params_for_model(m.heat_fc))
+    print(count_params_for_model(m.pred_cube))
+
+def get_operation_num():
+    model = MM_CNN(paths = ['feat', 'heat', 'pose'])
+    from profiler import profile
+    input_size = (1, 1, 260, 344)
+    num_ops, num_params = profile(model, input_size)
+    # custom_ops = {'ConvTranspose2d', ''}
+    print(num_ops)
+    print(num_params)
 if __name__ == '__main__':    
-    test_fix()
+    get_operation_num()
     

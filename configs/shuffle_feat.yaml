@@ -1,0 +1,40 @@
+lr: 0.001
+epochs: 60
+batch_size: 32
+
+experiment: shuffle
+dataset: dataset.pose7500.FasterPose7500
+
+train_dataset_args:
+  data_dir: /mnt/hdd/wuxiao/DHP19/pose7500numpy
+  mode: train
+  use_percentage: 10
+  experiment: shuffle
+test_dataset_args:
+  data_dir: /mnt/hdd/wuxiao/DHP19/pose7500numpy
+  mode: test
+  use_percentage: 10
+  experiment: shuffle
+
+model: model.shufflenet.ShuffleNetV2
+model_args:
+  scale: 0.5
+  in_channels: 1
+  c_tag: 0.5
+  num_classes: 33
+  SE: False
+  residual: False
+
+optimizer: torch.optim.Adam
+scheduler: torch.optim.lr_scheduler.ReduceLROnPlateau
+scheduler_args:
+  mode: min
+  factor: 0.1
+  patience: 7
+  verbose: True
+
+criterion: torch.nn.functional.cross_entropy
+metric: utils.losses.accuracy
+test_interval: 1
+max_metric: True
+trainer: utils.trainer.train
