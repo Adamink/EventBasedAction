@@ -258,6 +258,43 @@ class ShuffleNetV2(nn.Module):
         x = self.fc(x)
         return F.log_softmax(x, dim=1)
 
+    def load_pretrain(self, model_pth):
+        print("load model from " + model_pth)
+        input_state = torch.load(model_pth)
+        to_load = OrderedDict()
+
+        state = self.state_dict()
+
+        for k, v in input_state.items():
+            name = k.replace('module.', '')
+            if name in state:
+                to_load[name] = v
+        state.update(to_load)
+        self.load_state_dict(state)
+
+class Shuffle(nn.Module):
+    def __init__(self, purpose = 'classsifier', scale = 0.5, in_channels = 1, num_classes = 33):
+        if purpose=='classifier':
+            self.model = ShuffleNetV2(scale = scale, in_channels = in_channels, num_classes = num_classes)
+
+    def forward(self, x):
+        x = self.model(x)
+        return x
+
+def get_operation_num(model):
+    from profiler import profile
+    input_size = (1, 1, 260, 344)
+    num_ops, num_params = profile(model, input_size)
+    # custom_ops = {'ConvTranspose2d', ''}
+    print(num_ops)
+    print(num_params)
+
+def get_summary(model):
+    import os
+    os.environ['CUDA_VISIBLE_DEVICES'] = '6'
+    model = model.cuda()
+    from torchsummary import summary
+    summary(model, input_size=(1, 260, 344))
 
 if __name__ == "__main__":
     """Testing
@@ -282,7 +319,5 @@ if __name__ == "__main__":
     print(model5(x3))"""
     model = ShuffleNetV2(scale=0.5, in_channels=1, c_tag=0.5, num_classes = 34, activation=nn.ReLU,
                          SE = False, residual = True)
-    x1 = torch.randn(1, 1, 224, 224)
-    x2 = torch.randn(1, 1, 260, 344)
-    print(model(x1).size())
-    print(model(x2).size())
+    # get_operation_num(model)
+    get_summary(model)

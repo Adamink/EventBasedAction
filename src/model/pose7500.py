@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from collections import OrderedDict
+import sys
 
 class DHP_CNN(nn.Module):
     def __init__(self, input_size = (1, 260, 344), pretrain_pth=''):
@@ -234,7 +235,7 @@ class MM_CNN(nn.Module):
             self.feat_conv3,
             self.relu,
             self.maxpool
-        )
+        ) 
         self.heat_conv1 = nn.Conv2d(16, 32, 3, padding = 1)
         self.heat_conv2 = nn.Conv2d(32, 64, 3, padding = 1)
         self.heat_conv3 = nn.Conv2d(64, 128, 3, padding = 1)
@@ -406,6 +407,17 @@ def get_operation_num():
     # custom_ops = {'ConvTranspose2d', ''}
     print(num_ops)
     print(num_params)
+
+def get_summary():
+    model = MM_CNN(paths = ['feat', 'heat', 'pose'])
+    x=  torch.randn((1, 1, 260, 344))
+    print(model(x).size())
+    import os
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    model = model.cuda()
+    from torchsummary import summary
+    summary(model, input_size=(1, 260, 344))
+
 if __name__ == '__main__':    
     get_operation_num()
-    
+    get_summary()

@@ -132,10 +132,19 @@ def main(args):
     print("#Ops: %f GOps"%(total_ops/1e9))
     print("#Parameters: %f M"%(total_params/1e6))
 
+def main_shuffle():
+    from shufflenet import ShuffleNetV2
+    model = ShuffleNetV2(scale=0.5, in_channels=1, c_tag=0.5, num_classes = 33, activation=nn.ReLU,
+                         SE = False, residual = True)
+    total_ops, total_params = profile(model, (1, 1, 260, 344))
+    print("#Ops: %f GOps"%(total_ops/1e9))
+    print("#Parameters: %f M"%(total_params/1e6))
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="pytorch model profiler")
-    parser.add_argument("model", help="model to profile")
-    parser.add_argument("input_size", nargs='+', type=int,
-                        help="input size to the network")
-    args = parser.parse_args()
-    main(args)
+    # parser = argparse.ArgumentParser(description="pytorch model profiler")
+    # parser.add_argument("model", help="model to profile")
+    # parser.add_argument("input_size", nargs='+', type=int,
+    #                     help="input size to the network")
+    # args = parser.parse_args()
+    # main(args)
+    main_shuffle()

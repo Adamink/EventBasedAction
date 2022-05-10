@@ -8,11 +8,11 @@ from sklearn.utils.multiclass import unique_labels
 
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
-def plot_histogram(y_acc, classes, title = None, cmap=plt.cm.Blues):
+def plot_histogram(y_acc, classes, title = None, cmap=plt.cm.Purples):
     fig, ax = plt.subplots()
     ax.patch.set_visible(False)
     # ax.hist(y_acc)
-    ax.bar(range(0, len(classes)), height = y_acc, align = 'edge')
+    ax.bar(range(0, len(classes)), height = y_acc, align = 'edge', color = 'lightcyan',edgecolor='navy')
     # We want to show all ticks...
     ax.set(xticks=np.arange(len(classes)),
            # ... and label them with the respective list entries
@@ -30,7 +30,7 @@ def plot_histogram(y_acc, classes, title = None, cmap=plt.cm.Blues):
 def plot_confusion_matrix(y_true, y_pred, classes,
                         normalize=False,
                           title=None,
-                          cmap=plt.cm.Blues):
+                          cmap=plt.cm.YlOrRd):
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.

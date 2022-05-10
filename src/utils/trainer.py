@@ -178,3 +178,58 @@ def train(args, model, train_dataloader, test_dataloader, optimizer, scheduler,
                 torch.save(optimizer.state_dict(), args.optim_savepth)
 
     return best_metric, best_epoch
+
+def train_and_save(args, model, train_dataloader, test_dataloader, optimizer, scheduler,
+ criterion, metric, logger, board, test_interval = 1, max_metric = False):
+    print('max_metric='+str(max_metric))
+    def better(a, b):
+        if max_metric:
+            return a > b
+        else:
+            return a < b
+
+    best_metric, best_epoch = (float('-inf'), 0) if max_metric else (float('inf'), 0)
+    test_loss, test_metric, data_time, model_time = \
+     test_one_epoch(model, test_dataloader, criterion, metric)
+    logger("Initially, test_loss: {:.4f}, test_metric: {:.4f}, data_time: {:s}, model_time: {:s}".
+     format(test_loss, test_metric, fmt_elapsed_time(data_time), fmt_elapsed_time(model_time)))
+    
+    scheduler_after_epoch = args.stages[-1]['epoch'] if hasattr(args, 'stages') else 0
+    for epoch in range(args.epochs):
+        if hasattr(args, 'stages'):
+            for _ in args.stages:
+                e = _['epoch']
+                operation  = _['operation']
+                if epoch==e:
+                    logger(operation)
+                    eval('model.module.' + operation)
+
+        train_loss, train_metric, data_time, model_time = \
+         train_one_epoch(model, train_dataloader, optimizer, criterion, metric)
+        output = 'Train: Epoch {:>3d} Time {:s} Datatime {:s} ModelTime {:s} Loss {:.4f} Metric {:.4f}'.format(
+         epoch, get_fmt_time(), fmt_elapsed_time(data_time), fmt_elapsed_time(model_time), train_loss, train_metric)
+        logger(output)
+        board.add_scalars('loss',{'train_loss':train_loss}, epoch)
+        board.add_scalars('metric',{'train_metric':train_metric}, epoch)
+
+        if epoch >= scheduler_after_epoch:
+            if scheduler.__class__.__name__=='ReduceLROnPlateau':
+                scheduler.step(train_loss)
+            else:
+                scheduler.step()
+
+        if epoch % test_interval == 0:
+            test_loss, test_metric, data_time, model_time = test_one_epoch(model, test_dataloader, criterion, metric)
+            output = 'Test : Epoch {:>3d} Time {:s} Datatime {:s} ModelTime {:s} Loss {:.4f} Metric {:.4f}'.format(
+             epoch, get_fmt_time(), fmt_elapsed_time(data_time), fmt_elapsed_time(model_time), test_loss, test_metric)
+            logger(output)
+            board.add_scalars('loss',{'test_loss':test_loss}, epoch)
+            board.add_scalars('metric', {'test_metric':test_metric}, epoch)
+
+            if better(test_metric, best_metric):
+                logger("Epoch: {:>3d} Saving Model".format(epoch))
+                best_metric, best_epoch = test_metric, epoch
+                torch.save(model.state_dict(), args.model_savepth + '.' + str(epoch))
+                torch.save(optimizer.state_dict(), args.optim_savepth)
+
+    return best_metric, best_epoch

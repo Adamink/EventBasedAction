@@ -357,33 +357,6 @@ class FasterPose7500(data.Dataset):
     def gen_2dpose(self, skeleton, cam = 3):
         # input:(3,13)
         # output: (image_h, image_w, num_joints)
-        p_mat_cam = self.p_mat_cam[cam]
-        # use homogeneous coordinates representation to project 3d XYZ coordinates to 2d UV pixel coordinates.
-        vicon_xyz_homog = np.concatenate([skeleton, np.ones([1,13])], axis=0)
-        coord_pix_all_cam2_homog = np.matmul(p_mat_cam, vicon_xyz_homog)
-        coord_pix_all_cam2_homog_norm = coord_pix_all_cam2_homog/coord_pix_all_cam2_homog[-1]
-        # print(coord_pix_all_cam2_homog)
-        # print(coord_pix_all_cam2_homog_norm)
-        u = coord_pix_all_cam2_homog_norm[0]
-        v = self.image_h - coord_pix_all_cam2_homog_norm[1] # flip v coordinate to match the image direction
-
-        u = np.nan_to_num(u)
-        v = np.nan_to_num(v)
-    
-        # pixel coordinates
-        u = u.astype(np.int32)
-        v = v.astype(np.int32)
-
-        u = np.clip(u, 0, self.image_w - 1)
-        v = np.clip(v, 0, self.image_h - 1)
-
-        pose_weight = np.ones(shape = u.shape, dtype=np.float32)
-        pose_weight[u==0] = 0.
-        pose_weight[v==0] = 0.
-        pose_weight[u==self.image_w - 1] = 0.
-        pose_weight[v==self.image_h - 1] = 0.
-
-        pose = np.stack((v, u))
         return pose, pose_weight
 
     def gen_heatmap(self, pose, decay_maps_flag = True):

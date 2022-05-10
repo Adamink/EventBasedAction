@@ -2,19 +2,26 @@ lr: 0.001
 epochs: 60
 batch_size: 32
 
-experiment: mm_cnn
-dataset: dataset.pose7500.FasterPose7500
+experiment: final
+dataset: dataset.dhp19.DHP19
 
 train_dataset_args:
-  data_dir: /mnt/hdd/wuxiao/DHP19/pose7500numpy
+  data_pth: /mnt/hdd/wuxiao/DHP19/pose7500numpy
   mode: train
   use_percentage: 100
+  num_temporal_clip: 30
+  num_spatial_clip: 1
+  clip_len: 1
+
 test_dataset_args:
-  data_dir: /mnt/hdd/wuxiao/DHP19/pose7500numpy
+  data_pth: /mnt/hdd/wuxiao/DHP19/pose7500numpy
   mode: test
   use_percentage: 100
+  num_temporal_clip: 10
+  num_spatial_clip: 1
+  clip_len: 1
 
-model: model.pose7500.MM_CNN
+model: model.action.Mean
 model_args:
   fc_size:
     - 1024
@@ -23,15 +30,15 @@ model_args:
   num_classes: 33
   paths:
     - feat
-    - heat
-    - pose
   pretrain_pth: /mnt/hdd/wuxiao/winter/checkpoints/pose7500/1125_15:05:54_model.pt
+  aggregation: mean
+
 optimizer: torch.optim.Adam
 scheduler: torch.optim.lr_scheduler.ReduceLROnPlateau
 scheduler_args:
   mode: min
   factor: 0.1
-  patience: 5
+  patience: 7
   verbose: True
 
 criterion: torch.nn.functional.cross_entropy
@@ -40,7 +47,3 @@ test_interval: 1
 max_metric: True
 trainer: utils.trainer.train
 
-stages:
- - {epoch: 0, operation: fix_pretrain}
- - {epoch: 10, operation: unfix_pretrain}
- 

@@ -1,0 +1,51 @@
+lr: 0.001
+epochs: 60
+batch_size: 32
+
+experiment: final
+dataset: dataset.dhp19.DHP19
+
+train_dataset_args:
+  data_pth: /mnt/hdd/wuxiao/DHP19/pose7500numpy
+  mode: train
+  use_percentage: 100
+  num_temporal_clip: 30
+  num_spatial_clip: 1
+  clip_len: 1
+
+test_dataset_args:
+  data_pth: /mnt/hdd/wuxiao/DHP19/pose7500numpy
+  mode: test
+  use_percentage: 100
+  num_temporal_clip: 10
+  num_spatial_clip: 1
+  clip_len: 1
+
+model: model.action.Mean
+model_args:
+  fc_size:
+    - 1024
+    - 1024
+    - 26
+  num_classes: 33
+  paths:
+    - feat
+    - heat
+    - pose
+  pretrain_pth: /mnt/hdd/wuxiao/winter/checkpoints/pose7500/1125_15:05:54_model.pt
+  aggregation: mean
+
+optimizer: torch.optim.Adam
+scheduler: torch.optim.lr_scheduler.ReduceLROnPlateau
+scheduler_args:
+  mode: min
+  factor: 0.1
+  patience: 7
+  verbose: True
+
+criterion: torch.nn.functional.cross_entropy
+metric: utils.losses.accuracy
+test_interval: 1
+max_metric: True
+trainer: utils.trainer.train
+

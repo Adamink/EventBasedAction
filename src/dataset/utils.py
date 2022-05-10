@@ -25,6 +25,41 @@ def gen_2dpose_from_heatmap(heatmap):
     indices= np.stack([m // h, m % h]) #(2, 13)
     return indices
 
+def gen_small_heatmap(pose, image_size = [56, 56], decay = True):
+    # initialize the heatmaps
+    init_h, init_w = [260, 344]
+    num_joints = 13
+    
+    v = pose[0]
+    u = pose[1]
+    k = 2 # constant used to better visualize the joints when not using decay
+
+    mask = np.ones(u.shape).astype(np.float32)
+    mask[u >= init_w - 1] = 0
+    mask[u <= 0] = 0
+    mask[v >= init_h - 1] = 0
+    mask[v <= 0] = 0
+    
+    image_h, image_w = image_size
+
+    v = float(v) / float(init_h) * float(image_h)
+    w = float(w) / float(init_w) * float(image_w)
+    
+    heatmap = np.zeros((image_h, image_w, num_joints), dtype=np.float32)
+    def decay_heatmap(heatmap, sigma2=4):
+        heatmap = cv2.GaussianBlur(heatmap,(0,0),sigma2)
+        heatmap /= np.max(heatmap) # to keep the max to 1
+        return heatmap
+    
+    for fmidx,pair in enumerate(zip(v,u, mask)):
+        x, y, m = pair
+        if m:
+            if decay:
+                heatmap[x, y, fmidx] = 1
+                heatmap[:,:,fmidx] = decay_heatmap(heatmap[:,:,fmidx])
+            else:
+                heatmap[(x-k):(x+k+1),(y-k):(y+k+1), fmidx] = 1
+    return heatmap
 def gen_heatmap(pose, image_size = [260, 344], decay = True):
     # initialize the heatmaps
     image_h, image_w = image_size
